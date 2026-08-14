@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend/">
+    <Project Path="src/backend/SportReplay.Api/SportReplay.Api.csproj" />
+    <Project Path="src/backend/SportReplay.Application/SportReplay.Application.csproj" />
+    <Project Path="src/backend/SportReplay.Domain/SportReplay.Domain.csproj" />
+    <Project Path="src/backend/SportReplay.Infrastructure/SportReplay.Infrastructure.csproj" />
+    <Project Path="src/backend/SportReplay.IntegrationTests/SportReplay.IntegrationTests.csproj" />
+    <Project Path="src/backend/SportReplay.UnitTests/SportReplay.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/src/workers/">
+    <Project Path="src/workers/SportReplay.VideoWorker/SportReplay.VideoWorker.csproj" />
+  </Folder>
+</Solution>

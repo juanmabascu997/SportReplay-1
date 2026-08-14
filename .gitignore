@@ -1,0 +1,15 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+logs/
+video-work/
+node_modules/
+dist/
+coverage/
+.env
+*.log
+TestResults/
+publish/

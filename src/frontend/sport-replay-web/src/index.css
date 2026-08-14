@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 500px at 10% -10%, rgba(62, 224, 162, 0.16), transparent 50%),
+    radial-gradient(900px 400px at 100% 0%, rgba(56, 189, 248, 0.12), transparent 45%),
+    #07131f;
+}
+
+.card {
+  @apply rounded-2xl border border-line bg-panel/80 backdrop-blur p-5;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold transition disabled:opacity-50;
+}
+
+.btn-primary {
+  @apply btn bg-accent text-ink hover:brightness-110 shadow-glow;
+}
+
+.btn-ghost {
+  @apply btn border border-line text-slate-200 hover:bg-white/5;
+}
+
+.input {
+  @apply w-full rounded-xl border border-line bg-ink/70 px-3 py-2.5 outline-none focus:border-accent;
+}
+
+.status-online { @apply bg-emerald-500/20 text-emerald-300; }
+.status-offline { @apply bg-slate-500/20 text-slate-300; }
+.status-error { @apply bg-rose-500/20 text-rose-300; }

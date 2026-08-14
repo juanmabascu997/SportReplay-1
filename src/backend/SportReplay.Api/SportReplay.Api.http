@@ -1,0 +1,11 @@
+@POST http://localhost:5080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@sportreplay.local",
+  "password": "Admin123!"
+}
+
+###
+@POST http://localhost:5080/api/matches?clubId=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+Authorization: Bearer {{token}}

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-SportReplay.VideoWorker-91997784-479b-4e17-bde2-9bf6361ec92c</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\backend\SportReplay.Application\SportReplay.Application.csproj" />
+    <ProjectReference Include="..\..\backend\SportReplay.Infrastructure\SportReplay.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\backend\SportReplay.Domain\SportReplay.Domain.csproj" />
+  </ItemGroup>
+</Project>
