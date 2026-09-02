@@ -13,3 +13,6 @@ coverage/
 *.log
 TestResults/
 publish/
+.vercel
+.railway
+

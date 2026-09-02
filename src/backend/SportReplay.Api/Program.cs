@@ -16,6 +16,12 @@ using SportReplay.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var listenPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(listenPort))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{listenPort}");
+}
+
 builder.Host.UseSerilog((ctx, cfg) =>
 {
     cfg.ReadFrom.Configuration(ctx.Configuration)
@@ -58,10 +64,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 
-var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? ["http://localhost:5173", "http://localhost:8080"];
+var origins = (builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+               ?? ["http://localhost:5173", "http://localhost:8080"])
+    .Concat((builder.Configuration["CORS_ALLOWED_ORIGINS"] ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("default", policy => policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials());
+    options.AddPolicy("default", policy => policy
+        .SetIsOriginAllowed(origin =>
+        {
+            if (origins.Contains(origin, StringComparer.OrdinalIgnoreCase)) return true;
+            return Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                   && uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase);
+        })
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
 });
 
 builder.Services.AddRateLimiter(options =>
@@ -75,9 +95,7 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-var connectionString = builder.Configuration["DATABASE_CONNECTION_STRING"]
-    ?? builder.Configuration.GetConnectionString("Default")
-    ?? "Host=localhost;Port=5432;Database=sportreplay;Username=sportreplay;Password=sportreplay_dev";
+var connectionString = ConnectionStringResolver.Resolve(builder.Configuration);
 
 builder.Services.AddHealthChecks()
     .AddNpgSql(connectionString, name: "postgres", tags: ["ready"]);

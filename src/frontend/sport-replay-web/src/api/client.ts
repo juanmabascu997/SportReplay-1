@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? '/api';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? '/api'
+  baseURL: apiBaseUrl
 });
 
 api.interceptors.request.use((config) => {
@@ -19,7 +21,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && localStorage.getItem('sr.auth')) {
       const parsed = JSON.parse(localStorage.getItem('sr.auth')!);
       try {
-        const refreshed = await axios.post('/api/auth/refresh', { refreshToken: parsed.refreshToken });
+        const refreshed = await axios.post(`${apiBaseUrl}/auth/refresh`, { refreshToken: parsed.refreshToken });
         localStorage.setItem('sr.auth', JSON.stringify(refreshed.data));
         error.config.headers.Authorization = `Bearer ${refreshed.data.accessToken}`;
         return api.request(error.config);

@@ -20,9 +20,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration["DATABASE_CONNECTION_STRING"]
-            ?? configuration.GetConnectionString("Default")
-            ?? "Host=localhost;Port=5432;Database=sportreplay;Username=sportreplay;Password=sportreplay_dev";
+        var connectionString = ConnectionStringResolver.Resolve(configuration);
 
         services.AddDbContext<SportReplayDbContext>(options => options.UseNpgsql(connectionString));
         services.AddHttpContextAccessor();

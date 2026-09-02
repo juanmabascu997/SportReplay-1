@@ -29,6 +29,7 @@ export function CamerasPage() {
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cameras'] })
   });
+  const test = useMutation({
     mutationFn: camerasApi.test,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cameras'] })
   });
