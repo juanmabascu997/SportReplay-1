@@ -56,6 +56,10 @@ public class ClubsController : ControllerBase
     public async Task<IActionResult> CreateCourt(Guid clubId, SportReplay.Application.Contracts.Courts.CreateCourtRequest request, CancellationToken cancellationToken)
         => Ok(await _courts.CreateAsync(clubId, request, cancellationToken));
 
+    [HttpGet("{clubId:guid}/prices")]
+    public async Task<IActionResult> Prices(Guid clubId, CancellationToken cancellationToken)
+        => Ok(await _clubs.GetPricesAsync(clubId, cancellationToken));
+
     [HttpGet("{clubId:guid}/settings")]
     [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.ClubOwner}")]
     public async Task<IActionResult> Settings(Guid clubId, CancellationToken cancellationToken)

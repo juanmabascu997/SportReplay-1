@@ -37,17 +37,40 @@ public class MercadoPagoService : IMercadoPagoService
 
     public async Task<PaymentDto> CreatePaymentAsync(
         Guid userId,
-        Guid videoClipId,
+        Guid? videoClipId,
+        Guid? matchId,
         Guid? videoRequestId,
         ProductType productType,
         string? promotionCode,
         CancellationToken cancellationToken = default)
     {
-        var clip = await _db.VideoClips.Include(x => x.Match).ThenInclude(x => x.Court).ThenInclude(x => x.Club).ThenInclude(x => x.Settings)
-            .FirstOrDefaultAsync(x => x.Id == videoClipId, cancellationToken)
-            ?? throw new NotFoundException("VideoClip", videoClipId);
+        Domain.Entities.Match? match = null;
+        VideoClip? clip = null;
+        ClubSettings? settings = null;
+        Guid clubId;
 
-        var settings = clip.Match.Court.Club.Settings;
+        if (videoClipId.HasValue)
+        {
+            clip = await _db.VideoClips.Include(x => x.Match).ThenInclude(x => x.Court).ThenInclude(x => x.Club).ThenInclude(x => x.Settings)
+                .FirstOrDefaultAsync(x => x.Id == videoClipId, cancellationToken)
+                ?? throw new NotFoundException("VideoClip", videoClipId.Value);
+            match = clip.Match;
+            settings = clip.Match.Court.Club.Settings;
+            clubId = clip.Match.Court.ClubId;
+        }
+        else if (matchId.HasValue)
+        {
+            match = await _db.Matches.Include(x => x.Court).ThenInclude(x => x.Club).ThenInclude(x => x.Settings)
+                .FirstOrDefaultAsync(x => x.Id == matchId, cancellationToken)
+                ?? throw new NotFoundException("Match", matchId.Value);
+            settings = match.Court.Club.Settings;
+            clubId = match.Court.ClubId;
+        }
+        else
+        {
+            throw new AppException("A match or clip is required to create a payment.");
+        }
+
         var amount = productType switch
         {
             ProductType.FullMatch => settings?.FullMatchPrice ?? 4500m,
@@ -58,7 +81,7 @@ public class MercadoPagoService : IMercadoPagoService
         if (!string.IsNullOrWhiteSpace(promotionCode))
         {
             var promo = await _db.Promotions.FirstOrDefaultAsync(
-                x => x.ClubId == clip.Match.Court.ClubId && x.Code == promotionCode && x.IsActive && x.StartsAt <= DateTime.UtcNow && x.EndsAt >= DateTime.UtcNow,
+                x => x.ClubId == clubId && x.Code == promotionCode && x.IsActive && x.StartsAt <= DateTime.UtcNow && x.EndsAt >= DateTime.UtcNow,
                 cancellationToken);
             if (promo is not null)
             {
@@ -66,11 +89,11 @@ public class MercadoPagoService : IMercadoPagoService
             }
         }
 
-        var product = await _db.Products.FirstOrDefaultAsync(x => x.ClubId == clip.Match.Court.ClubId && x.Type == productType && x.IsActive, cancellationToken);
+        var product = await _db.Products.FirstOrDefaultAsync(x => x.ClubId == clubId && x.Type == productType && x.IsActive, cancellationToken);
         var payment = new Payment
         {
             UserId = userId,
-            VideoClipId = videoClipId,
+            VideoClipId = productType == ProductType.FullMatch ? null : clip?.Id,
             VideoRequestId = videoRequestId,
             ProductId = product?.Id,
             Amount = decimal.Round(amount, 2),
@@ -82,7 +105,7 @@ public class MercadoPagoService : IMercadoPagoService
 
         if (string.IsNullOrWhiteSpace(_options.AccessToken))
         {
-            payment.InitPoint = $"http://localhost:5173/payments/{payment.Id}?sandbox=true";
+            payment.InitPoint = $"/payments?status=pending&sandbox=true&paymentId={payment.Id}";
             payment.PreferenceId = $"sandbox-{payment.Id:N}";
             await _db.SaveChangesAsync(cancellationToken);
             return Map(payment);
@@ -95,7 +118,9 @@ public class MercadoPagoService : IMercadoPagoService
             {
                 new
                 {
-                    title = productType == ProductType.Clip ? "SportReplay clip" : "SportReplay video",
+                    title = productType == ProductType.Clip
+                        ? "SportReplay clip"
+                        : match?.Title ?? "SportReplay partido",
                     quantity = 1,
                     currency_id = payment.Currency,
                     unit_price = payment.Amount
@@ -342,6 +367,7 @@ public class PaymentService : IPaymentService
         return await _mercadoPago.CreatePaymentAsync(
             _currentUser.UserId.Value,
             request.VideoClipId,
+            request.MatchId,
             request.VideoRequestId,
             request.ProductType,
             request.PromotionCode,

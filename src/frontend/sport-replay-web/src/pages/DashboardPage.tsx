@@ -9,7 +9,7 @@ export function DashboardPage() {
   const dashboard = useQuery({
     queryKey: ['dashboard', clubId],
     queryFn: () => clubsApi.dashboard(clubId!),
-    enabled: !!clubId && user?.role !== 'Player'
+    enabled: !!clubId
   });
 
   const d = dashboard.data;
@@ -30,25 +30,16 @@ export function DashboardPage() {
     <div className="space-y-6 pb-16">
       <div>
         <p className="text-sm text-accent">Hola {user?.firstName}</p>
-        <h1 className="font-display text-3xl">Panel {user?.role === 'Player' ? 'del jugador' : 'del club'}</h1>
+        <h1 className="font-display text-3xl">Panel del club</h1>
       </div>
-      {user?.role === 'Player' ? (
-        <div className="card">
-          <p>Busca tu partido por club, cancha, fecha y horario.</p>
-          <a className="btn-primary mt-4 inline-flex" href="/matches">
-            Ver partidos
-          </a>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map(([label, value]) => (
-            <div key={String(label)} className="card">
-              <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-              <p className="mt-2 font-display text-3xl">{value}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map(([label, value]) => (
+          <div key={String(label)} className="card">
+            <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
+            <p className="mt-2 font-display text-3xl">{value}</p>
+          </div>
+        ))}
+      </div>
       {d?.cameraErrors?.length ? (
         <div className="card">
           <h2 className="mb-3 font-semibold">Errores de camaras</h2>

@@ -15,6 +15,6 @@ describe('LoginPage', () => {
         </MemoryRouter>
       </QueryClientProvider>
     );
-    expect(screen.getByText(/Entrar al club/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Ingresar/i })).toBeInTheDocument();
   });
 });

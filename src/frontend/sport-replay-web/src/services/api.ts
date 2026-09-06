@@ -1,5 +1,5 @@
 import api from '../api/client';
-import type { Camera, Club, ClubDashboard, Court, Match, Paged, Payment, Recording, VideoClip } from '../types';
+import type { Camera, Club, ClubDashboard, ClubPrices, Court, Match, Paged, Payment, Recording, UserProfile, VideoClip } from '../types';
 
 export const clubsApi = {
   list: () => api.get<Club[]>('/clubs').then((r) => r.data),
@@ -9,6 +9,7 @@ export const clubsApi = {
   createCourt: (clubId: string, payload: { name: string; sportType: number; description?: string }) =>
     api.post<Court>(`/clubs/${clubId}/courts`, payload).then((r) => r.data),
   dashboard: (clubId: string) => api.get<ClubDashboard>(`/clubs/${clubId}/dashboard`).then((r) => r.data),
+  prices: (clubId: string) => api.get<ClubPrices>(`/clubs/${clubId}/prices`).then((r) => r.data),
   settings: (clubId: string) => api.get(`/clubs/${clubId}/settings`).then((r) => r.data),
   updateSettings: (clubId: string, payload: unknown) => api.put(`/clubs/${clubId}/settings`, payload).then((r) => r.data)
 };
@@ -36,13 +37,19 @@ export const videosApi = {
     api.post<{ clipId: string; status: number }>('/video-clips', payload).then((r) => r.data),
   getClip: (id: string) => api.get<VideoClip>(`/video-clips/${id}`).then((r) => r.data),
   stream: (id: string) => api.get<{ id: string; url: string; kind: string }>(`/videos/${id}/stream`).then((r) => r.data),
+  recordingStream: (id: string) =>
+    api.get<{ id: string; url: string; kind: string }>(`/recordings/${id}/stream`).then((r) => r.data),
   download: (id: string) => api.get<{ url: string }>(`/videos/${id}/download`).then((r) => r.data),
-  requestWhatsApp: (payload: { matchId: string; videoClipId: string; phoneNumber: string }) =>
-    api.post('/video-requests', payload).then((r) => r.data)
+  requestWhatsApp: (payload: { matchId: string; videoClipId?: string; phoneNumber: string }) =>
+    api.post<{ id: string }>('/video-requests', payload).then((r) => r.data)
 };
 
 export const paymentsApi = {
-  create: (payload: { videoClipId: string; videoRequestId?: string; productType: number }) =>
+  create: (payload: { videoClipId?: string; matchId?: string; videoRequestId?: string; productType: number }) =>
     api.post<Payment>('/payments/create', payload).then((r) => r.data),
   get: (id: string) => api.get<Payment>(`/payments/${id}`).then((r) => r.data)
+};
+
+export const profileApi = {
+  get: () => api.get<UserProfile>('/profile').then((r) => r.data)
 };

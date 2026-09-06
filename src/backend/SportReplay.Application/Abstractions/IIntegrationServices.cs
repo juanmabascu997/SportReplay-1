@@ -11,7 +11,7 @@ public interface IPaymentService
 
 public interface IMercadoPagoService
 {
-    Task<PaymentDto> CreatePaymentAsync(Guid userId, Guid videoClipId, Guid? videoRequestId, ProductType productType, string? promotionCode, CancellationToken cancellationToken = default);
+    Task<PaymentDto> CreatePaymentAsync(Guid userId, Guid? videoClipId, Guid? matchId, Guid? videoRequestId, ProductType productType, string? promotionCode, CancellationToken cancellationToken = default);
     Task<PaymentStatus> GetPaymentAsync(string externalPaymentId, CancellationToken cancellationToken = default);
     Task ProcessWebhookAsync(string payload, string? signature, string? requestId, CancellationToken cancellationToken = default);
 }

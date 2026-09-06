@@ -2,7 +2,7 @@ using SportReplay.Domain.Enums;
 
 namespace SportReplay.Application.Contracts.Payments;
 
-public record CreatePaymentRequest(Guid VideoClipId, Guid? VideoRequestId, ProductType ProductType, string? PromotionCode);
+public record CreatePaymentRequest(Guid? VideoClipId, Guid? VideoRequestId, ProductType ProductType, string? PromotionCode, Guid? MatchId = null);
 public record PaymentDto(
     Guid Id,
     Guid UserId,

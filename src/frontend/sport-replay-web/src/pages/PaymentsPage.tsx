@@ -8,7 +8,9 @@ export function PaymentsPage() {
       <h1 className="font-display text-3xl">Pagos</h1>
       <p>Los pagos se procesan con Mercado Pago Checkout Pro.</p>
       {status && <p className="text-accent">Estado de retorno: {status}</p>}
-      <p className="text-sm text-slate-400">Cuando el webhook marca el pago como approved, el clip se envia por WhatsApp automaticamente.</p>
+      <p className="text-sm text-slate-400">
+        Cuando Mercado Pago confirma el pago, enviamos el video del partido a WhatsApp de forma automatica.
+      </p>
     </div>
   );
 }

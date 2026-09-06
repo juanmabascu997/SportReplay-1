@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { homePath } from '../utils/roles';
 
 const schema = z.object({
   firstName: z.string().min(2),
@@ -12,10 +13,15 @@ const schema = z.object({
   role: z.enum(['Player', 'ClubOwner', 'Operator'])
 });
 
+type FormValues = z.infer<typeof schema>;
+
 export function RegisterPage() {
   const { register: signup } = useAuth();
   const navigate = useNavigate();
-  const { register, handleSubmit } = useForm({ resolver: zodResolver(schema), defaultValues: { role: 'Player' } });
+  const { register, handleSubmit } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { firstName: '', lastName: '', email: '', password: '', role: 'Player' }
+  });
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
@@ -23,8 +29,8 @@ export function RegisterPage() {
       <form
         className="mt-6 space-y-3"
         onSubmit={handleSubmit(async (values) => {
-          await signup(values);
-          navigate('/dashboard');
+          const auth = await signup(values);
+          navigate(homePath(auth.role));
         })}
       >
         <input className="input" placeholder="Nombre" {...register('firstName')} />

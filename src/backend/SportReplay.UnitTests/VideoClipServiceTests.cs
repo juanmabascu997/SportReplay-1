@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
 using SportReplay.Application.Abstractions;
-using SportReplay.Application.Common;
 using SportReplay.Application.Contracts.Videos;
 using SportReplay.Application.Exceptions;
 using SportReplay.Application.Options;
@@ -37,7 +36,6 @@ public class VideoClipServiceTests
         var service = new VideoClipService(
             db,
             Mock.Of<IStorageService>(),
-            Mock.Of<ICurrentUser>(),
             Options.Create(new VideoOptions { MaxClipDurationSeconds = 60, RetentionDays = 7 }),
             Options.Create(new StorageOptions()));
 

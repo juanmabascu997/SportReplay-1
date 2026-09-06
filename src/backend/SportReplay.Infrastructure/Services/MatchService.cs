@@ -23,6 +23,7 @@ public class MatchService : IMatchService
     public async Task<PagedResult<MatchDto>> SearchAsync(MatchSearchQuery query, CancellationToken cancellationToken = default)
     {
         var matches = _db.Matches
+            .Include(x => x.Recordings)
             .Include(x => x.Court).ThenInclude(x => x.Club)
             .AsNoTracking()
             .AsQueryable();
@@ -35,6 +36,11 @@ public class MatchService : IMatchService
         if (query.CourtId.HasValue)
         {
             matches = matches.Where(x => x.CourtId == query.CourtId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Province))
+        {
+            matches = matches.Where(x => x.Court.Club.Province == query.Province);
         }
 
         if (query.Date.HasValue)
@@ -69,7 +75,7 @@ public class MatchService : IMatchService
 
     public async Task<MatchDto> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var match = await _db.Matches.Include(x => x.Court).ThenInclude(x => x.Club)
+        var match = await _db.Matches.Include(x => x.Recordings).Include(x => x.Court).ThenInclude(x => x.Club)
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new NotFoundException("Match", id);
@@ -141,16 +147,23 @@ public class MatchService : IMatchService
         return MapRecording(created);
     }
 
-    private static MatchDto Map(Match match) => new(
-        match.Id,
-        match.CourtId,
-        match.Court.Name,
-        match.Court.ClubId,
-        match.Court.Club.Name,
-        match.StartTime,
-        match.EndTime,
-        match.Status,
-        match.Title);
+    private static MatchDto Map(Match match)
+    {
+        var ready = match.Recordings?.Count(r => r.Status == RecordingStatus.Ready || !string.IsNullOrWhiteSpace(r.StoragePath) || !string.IsNullOrWhiteSpace(r.HlsPath)) ?? 0;
+        return new(
+            match.Id,
+            match.CourtId,
+            match.Court.Name,
+            match.Court.ClubId,
+            match.Court.Club.Name,
+            match.Court.Club.Province,
+            match.StartTime,
+            match.EndTime,
+            match.Status,
+            match.Title,
+            ready > 0,
+            ready);
+    }
 
     private static RecordingDto MapRecording(Recording recording) => new(
         recording.Id,

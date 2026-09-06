@@ -24,8 +24,16 @@ public class MatchesVideosController : ControllerBase
 
     [HttpGet("/api/matches")]
     [AllowAnonymous]
-    public async Task<IActionResult> Search([FromQuery] Guid? clubId, [FromQuery] Guid? courtId, [FromQuery] DateOnly? date, [FromQuery] TimeOnly? time, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
-        => Ok(await _matches.SearchAsync(new MatchSearchQuery(clubId, courtId, date, time, page, pageSize), cancellationToken));
+    public async Task<IActionResult> Search(
+        [FromQuery] Guid? clubId,
+        [FromQuery] Guid? courtId,
+        [FromQuery] string? province,
+        [FromQuery] DateOnly? date,
+        [FromQuery] TimeOnly? time,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+        => Ok(await _matches.SearchAsync(new MatchSearchQuery(clubId, courtId, province, date, time, page, pageSize), cancellationToken));
 
     [HttpGet("/api/matches/{id:guid}")]
     [AllowAnonymous]

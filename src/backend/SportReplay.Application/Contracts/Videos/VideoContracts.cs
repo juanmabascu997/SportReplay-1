@@ -30,4 +30,4 @@ public record VideoRequestDto(
     DateTime RequestedAt,
     DateTime? CompletedAt);
 
-public record CreateVideoRequestRequest(Guid MatchId, Guid VideoClipId, string PhoneNumber);
+public record CreateVideoRequestRequest(Guid MatchId, Guid? VideoClipId, string PhoneNumber);

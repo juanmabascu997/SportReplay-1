@@ -8,15 +8,18 @@ public record MatchDto(
     string CourtName,
     Guid ClubId,
     string ClubName,
+    string? Province,
     DateTime StartTime,
     DateTime EndTime,
     MatchStatus Status,
-    string? Title);
+    string? Title,
+    bool HasRecording,
+    int RecordingCount);
 
 public record CreateMatchRequest(Guid CourtId, DateTime StartTime, DateTime EndTime, string? Title);
 public record UpdateMatchRequest(DateTime StartTime, DateTime EndTime, MatchStatus Status, string? Title);
 
-public record MatchSearchQuery(Guid? ClubId, Guid? CourtId, DateOnly? Date, TimeOnly? Time, int Page = 1, int PageSize = 20);
+public record MatchSearchQuery(Guid? ClubId, Guid? CourtId, string? Province, DateOnly? Date, TimeOnly? Time, int Page = 1, int PageSize = 20);
 
 public record RecordingDto(
     Guid Id,

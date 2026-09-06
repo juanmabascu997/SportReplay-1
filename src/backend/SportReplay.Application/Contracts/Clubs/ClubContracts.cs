@@ -37,6 +37,13 @@ public record UpdateClubRequest(
     bool IsActive,
     bool AllowFullMatchDownload);
 
+public record ClubPriceDto(
+    Guid ClubId,
+    decimal ClipPrice,
+    decimal FullMatchPrice,
+    string Currency,
+    bool AllowFullMatchDownload);
+
 public record ClubSettingsDto(
     Guid ClubId,
     decimal ClipPrice,

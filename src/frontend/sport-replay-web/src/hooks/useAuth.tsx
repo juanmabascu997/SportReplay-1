@@ -4,8 +4,8 @@ import type { AuthResponse, Role } from '../types';
 
 interface AuthState {
   user: AuthResponse | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (payload: { firstName: string; lastName: string; email: string; password: string; role?: Role }) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthResponse>;
+  register: (payload: { firstName: string; lastName: string; email: string; password: string; role?: Role }) => Promise<AuthResponse>;
   logout: () => Promise<void>;
 }
 
@@ -24,11 +24,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data } = await api.post<AuthResponse>('/auth/login', { email, password });
         localStorage.setItem('sr.auth', JSON.stringify(data));
         setUser(data);
+        return data;
       },
       register: async (payload) => {
         const { data } = await api.post<AuthResponse>('/auth/register', payload);
         localStorage.setItem('sr.auth', JSON.stringify(data));
         setUser(data);
+        return data;
       },
       logout: async () => {
         if (user?.refreshToken) {

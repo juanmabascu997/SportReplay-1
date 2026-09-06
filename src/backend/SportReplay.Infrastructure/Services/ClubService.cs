@@ -102,6 +102,19 @@ public class ClubService : IClubService
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<ClubPriceDto> GetPricesAsync(Guid clubId, CancellationToken cancellationToken = default)
+    {
+        var club = await _db.Clubs.AsNoTracking().FirstOrDefaultAsync(x => x.Id == clubId && x.IsActive, cancellationToken)
+            ?? throw new NotFoundException("Club", clubId);
+        var settings = await _db.ClubSettings.AsNoTracking().FirstOrDefaultAsync(x => x.ClubId == clubId, cancellationToken);
+        return new ClubPriceDto(
+            club.Id,
+            settings?.ClipPrice ?? 1500m,
+            settings?.FullMatchPrice ?? 4500m,
+            settings?.Currency ?? "ARS",
+            settings?.AllowFullMatchDownload ?? club.AllowFullMatchDownload);
+    }
+
     public async Task<ClubSettingsDto> GetSettingsAsync(Guid clubId, CancellationToken cancellationToken = default)
     {
         await _auth.EnsureClubAccessAsync(clubId, cancellationToken);

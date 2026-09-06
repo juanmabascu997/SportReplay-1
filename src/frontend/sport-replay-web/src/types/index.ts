@@ -16,6 +16,7 @@ export interface Club {
   name: string;
   description?: string;
   city?: string;
+  province?: string;
   country: string;
   ownerUserId: string;
   isActive: boolean;
@@ -53,10 +54,31 @@ export interface Match {
   courtName: string;
   clubId: string;
   clubName: string;
+  province?: string;
   startTime: string;
   endTime: string;
   status: number;
   title?: string;
+  hasRecording: boolean;
+  recordingCount: number;
+}
+
+export interface ClubPrices {
+  clubId: string;
+  clipPrice: number;
+  fullMatchPrice: number;
+  currency: string;
+  allowFullMatchDownload: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  role: Role;
+  isActive: boolean;
 }
 
 export interface Recording {

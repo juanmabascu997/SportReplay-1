@@ -83,7 +83,8 @@ public class CreatePaymentRequestValidator : AbstractValidator<CreatePaymentRequ
 {
     public CreatePaymentRequestValidator()
     {
-        RuleFor(x => x.VideoClipId).NotEmpty();
+        RuleFor(x => x.MatchId).NotEmpty().When(x => !x.VideoClipId.HasValue);
+        RuleFor(x => x.VideoClipId).NotEmpty().When(x => !x.MatchId.HasValue);
     }
 }
 
@@ -92,7 +93,6 @@ public class CreateVideoRequestRequestValidator : AbstractValidator<CreateVideoR
     public CreateVideoRequestRequestValidator()
     {
         RuleFor(x => x.MatchId).NotEmpty();
-        RuleFor(x => x.VideoClipId).NotEmpty();
         RuleFor(x => x.PhoneNumber).NotEmpty().MinimumLength(8);
     }
 }

@@ -50,13 +50,23 @@ public class WhatsAppService : IWhatsAppService
             throw new AppException("Video request is not paid yet.", 409);
         }
 
-        if (request.VideoClip is null || string.IsNullOrWhiteSpace(request.VideoClip.StoragePath))
+        var storagePath = request.VideoClip?.StoragePath;
+        if (string.IsNullOrWhiteSpace(storagePath))
         {
-            throw new AppException("Clip is not ready.", 409);
+            var recording = await _db.Recordings
+                .Where(x => x.MatchId == request.MatchId && !string.IsNullOrWhiteSpace(x.StoragePath))
+                .OrderByDescending(x => x.EndedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+            storagePath = recording?.StoragePath;
+        }
+
+        if (string.IsNullOrWhiteSpace(storagePath))
+        {
+            throw new AppException("Video is not ready.", 409);
         }
 
         request.Status = VideoRequestStatus.Sending;
-        var mediaUrl = await _storage.GetSignedUrlAsync(request.VideoClip.StoragePath, TimeSpan.FromMinutes(_storageOptions.SignedUrlExpiryMinutes), cancellationToken);
+        var mediaUrl = await _storage.GetSignedUrlAsync(storagePath, TimeSpan.FromMinutes(_storageOptions.SignedUrlExpiryMinutes), cancellationToken);
         var message = new WhatsAppMessage
         {
             VideoRequestId = request.Id,

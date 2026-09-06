@@ -15,20 +15,17 @@ public class VideoClipService : IVideoClipService
 {
     private readonly SportReplayDbContext _db;
     private readonly IStorageService _storage;
-    private readonly ICurrentUser _currentUser;
     private readonly VideoOptions _videoOptions;
     private readonly StorageOptions _storageOptions;
 
     public VideoClipService(
         SportReplayDbContext db,
         IStorageService storage,
-        ICurrentUser currentUser,
         IOptions<VideoOptions> videoOptions,
         IOptions<StorageOptions> storageOptions)
     {
         _db = db;
         _storage = storage;
-        _currentUser = currentUser;
         _videoOptions = videoOptions.Value;
         _storageOptions = storageOptions.Value;
     }
@@ -119,12 +116,7 @@ public class VideoClipService : IVideoClipService
             .FirstOrDefaultAsync(x => x.Id == recordingId, cancellationToken)
             ?? throw new NotFoundException("Recording", recordingId);
 
-        if (!recording.Match.Court.Club.AllowFullMatchDownload && _currentUser.Role == UserRoles.Player)
-        {
-            throw new ForbiddenException("Full match download is disabled for this club.");
-        }
-
-        var path = recording.HlsPath ?? recording.StoragePath ?? throw new AppException("Recording is not ready.", 409);
+        var path = recording.StoragePath ?? recording.HlsPath ?? throw new AppException("Recording is not ready.", 409);
         var url = await SignAsync(path, cancellationToken);
         var kind = path.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase) ? "hls" : "mp4";
         return new VideoStreamDto(recording.Id, url, kind, DateTime.UtcNow.AddMinutes(_storageOptions.SignedUrlExpiryMinutes));
@@ -176,14 +168,29 @@ public class VideoRequestService : IVideoRequestService
             throw new UnauthorizedAppException();
         }
 
-        var clip = await _db.VideoClips.FirstOrDefaultAsync(x => x.Id == request.VideoClipId, cancellationToken)
-            ?? throw new NotFoundException("VideoClip", request.VideoClipId);
+        Guid? clipId = request.VideoClipId;
+        if (clipId.HasValue)
+        {
+            var exists = await _db.VideoClips.AnyAsync(x => x.Id == clipId.Value, cancellationToken);
+            if (!exists)
+            {
+                throw new NotFoundException("VideoClip", clipId.Value);
+            }
+        }
+        else
+        {
+            var matchExists = await _db.Matches.AnyAsync(x => x.Id == request.MatchId, cancellationToken);
+            if (!matchExists)
+            {
+                throw new NotFoundException("Match", request.MatchId);
+            }
+        }
 
         var entity = new VideoRequest
         {
             UserId = _currentUser.UserId.Value,
             MatchId = request.MatchId,
-            VideoClipId = clip.Id,
+            VideoClipId = clipId,
             PhoneNumber = request.PhoneNumber,
             Status = VideoRequestStatus.AwaitingPayment,
             RequestedAt = DateTime.UtcNow
