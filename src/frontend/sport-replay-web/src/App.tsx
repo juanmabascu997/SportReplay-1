@@ -57,7 +57,7 @@ export default function App() {
           <Route path="/admin/cameras" element={<Staff><CamerasPage /></Staff>} />
           <Route path="/matches" element={<Staff><MatchesPage /></Staff>} />
           <Route path="/matches/:id" element={<MatchDetailPage />} />
-          <Route path="/videos/:id" element={<Staff><VideoPage /></Staff>} />
+          <Route path="/videos/:id" element={<VideoPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/payments/:id" element={<PaymentsPage />} />
           <Route path="/profile" element={<ProfilePage />} />

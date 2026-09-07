@@ -149,7 +149,6 @@ public class MatchService : IMatchService
 
     private static MatchDto Map(Match match)
     {
-        var ready = match.Recordings?.Count(r => r.Status == RecordingStatus.Ready || !string.IsNullOrWhiteSpace(r.StoragePath) || !string.IsNullOrWhiteSpace(r.HlsPath)) ?? 0;
         return new(
             match.Id,
             match.CourtId,
@@ -161,9 +160,14 @@ public class MatchService : IMatchService
             match.EndTime,
             match.Status,
             match.Title,
-            ready > 0,
-            ready);
+            HasUsableRecording(match),
+            UsableRecordingCount(match));
     }
+
+    private static bool HasUsableRecording(Match match) => UsableRecordingCount(match) > 0;
+
+    private static int UsableRecordingCount(Match match)
+        => match.Recordings?.Count(r => r.Status is not RecordingStatus.Failed and not RecordingStatus.Expired) ?? 0;
 
     private static RecordingDto MapRecording(Recording recording) => new(
         recording.Id,

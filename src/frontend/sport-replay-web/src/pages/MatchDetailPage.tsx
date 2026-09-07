@@ -6,6 +6,7 @@ import { VideoPlayer } from '../components/VideoPlayer';
 import { useAuth } from '../hooks/useAuth';
 import { formatMoney } from '../utils/format';
 import { isStaff } from '../utils/roles';
+import { isUsableRecording } from '../utils/recordings';
 
 export function MatchDetailPage() {
   const { user } = useAuth();
@@ -17,23 +18,32 @@ export function MatchDetailPage() {
 
 function PlayerMatchDetail() {
   const { id = '' } = useParams();
+  const qc = useQueryClient();
+  const [start, setStart] = useState(0);
+  const [end, setEnd] = useState(30);
   const [phone, setPhone] = useState('');
-  const [checkout, setCheckout] = useState(false);
+  const [selectedClipId, setSelectedClipId] = useState('');
   const [error, setError] = useState('');
 
   const match = useQuery({ queryKey: ['match', id], queryFn: () => matchesApi.get(id) });
   const recordings = useQuery({ queryKey: ['recordings', id], queryFn: () => matchesApi.recordings(id) });
+  const clips = useQuery({
+    queryKey: ['clips', id],
+    queryFn: () => matchesApi.clips(id),
+    refetchInterval: (query) => (query.state.data?.some((clip) => clip.status === 1) ? 2000 : false)
+  });
   const prices = useQuery({
     queryKey: ['prices', match.data?.clubId],
     queryFn: () => clubsApi.prices(match.data!.clubId),
     enabled: !!match.data?.clubId
   });
   const profile = useQuery({ queryKey: ['profile'], queryFn: profileApi.get });
-  const ready = recordings.data?.find((r) => r.status === 3) ?? recordings.data?.[0];
+  const recording = recordings.data?.find(isUsableRecording) ?? recordings.data?.[0];
   const stream = useQuery({
-    queryKey: ['recording-stream', ready?.id],
-    queryFn: () => videosApi.recordingStream(ready!.id),
-    enabled: !!ready?.id
+    queryKey: ['recording-stream', recording?.id],
+    queryFn: () => videosApi.recordingStream(recording!.id),
+    enabled: !!recording?.id,
+    retry: false
   });
 
   useEffect(() => {
@@ -42,13 +52,38 @@ function PlayerMatchDetail() {
     }
   }, [profile.data?.phone]);
 
+  const duration = Math.max(0, end - start);
+  const create = useMutation({
+    mutationFn: () =>
+      videosApi.createClip({
+        matchId: id,
+        recordingId: recording!.id,
+        startTime: toTime(start),
+        endTime: toTime(end)
+      }),
+    onSuccess: (created) => {
+      setSelectedClipId(created.clipId);
+      qc.invalidateQueries({ queryKey: ['clips', id] });
+    }
+  });
+
+  const selectedClip = clips.data?.find((c) => c.id === selectedClipId) ?? clips.data?.find((c) => c.status === 2);
+  const clipReady = (selectedClip?.status ?? 0) === 2;
   const pay = useMutation({
     mutationFn: async () => {
-      const request = await videosApi.requestWhatsApp({ matchId: id, phoneNumber: phone.trim() });
-      return paymentsApi.create({
+      const clipId = selectedClip?.id;
+      if (!clipId) {
+        throw new Error('Clip required');
+      }
+      const request = await videosApi.requestWhatsApp({
         matchId: id,
+        videoClipId: clipId,
+        phoneNumber: phone.trim()
+      });
+      return paymentsApi.create({
+        videoClipId: clipId,
         videoRequestId: request.id,
-        productType: 2
+        productType: 1
       });
     },
     onSuccess: (payment) => {
@@ -58,8 +93,9 @@ function PlayerMatchDetail() {
     }
   });
 
-  const price = prices.data?.fullMatchPrice ?? 4500;
+  const price = prices.data?.clipPrice ?? 1500;
   const currency = prices.data?.currency ?? 'ARS';
+  const timeline = useMemo(() => Array.from({ length: 13 }, (_, i) => i * 5), []);
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 pb-16">
@@ -74,30 +110,72 @@ function PlayerMatchDetail() {
         )}
       </div>
 
-      {ready ? (
+      {recording ? (
         <>
           <VideoPlayer src={stream.data?.url} kind={stream.data?.kind} />
-          {stream.isError && <p className="text-sm text-danger">No se pudo cargar la previsualizacion.</p>}
+          {stream.isError && (
+            <p className="text-sm text-slate-400">La previsualizacion no esta disponible, pero podes crear un clip de esta grabacion.</p>
+          )}
         </>
       ) : (
-        <div className="card">No hay grabacion lista para previsualizar.</div>
+        <div className="card">Este partido no tiene grabacion.</div>
       )}
 
-      {ready && !checkout && (
+      {recording && (
         <div className="card space-y-3">
-          <p>Si queres descargar o compartir el partido, te lo enviamos por WhatsApp despues del pago.</p>
-          <button className="btn-primary w-full" onClick={() => setCheckout(true)}>
-            Descargar y compartir
+          <p className="font-semibold">Crear clip</p>
+          <p className="text-sm text-slate-400">Usa la grabacion existente. Elegi el tramo y paga para recibirlo por WhatsApp.</p>
+          <div className="flex gap-1 overflow-x-auto">
+            {timeline.map((t) => (
+              <button
+                key={t}
+                className={`min-w-10 rounded-lg px-2 py-6 text-xs ${t >= start && t <= end ? 'bg-accent text-ink' : 'bg-ink'}`}
+                onClick={() => setStart(t)}
+              >
+                {t}m
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-sm">Inicio (seg)
+              <input className="input" type="number" value={start} onChange={(e) => setStart(Number(e.target.value))} />
+            </label>
+            <label className="text-sm">Fin (seg)
+              <input className="input" type="number" value={end} onChange={(e) => setEnd(Number(e.target.value))} />
+            </label>
+          </div>
+          <p>Duracion: {duration}s {duration > 60 ? '(max 60s)' : ''}</p>
+          <button
+            className="btn-primary w-full"
+            disabled={!recording || duration <= 0 || duration > 60 || create.isPending}
+            onClick={() => create.mutate()}
+          >
+            {create.isPending ? 'Creando clip...' : 'Crear clip'}
           </button>
+          {create.data && <p className="text-accent">Clip {create.data.clipId} en proceso. Cuando este listo podes pagarlo.</p>}
         </div>
       )}
 
-      {checkout && (
+      {clips.data?.map((clip) => (
+        <div key={clip.id} className={`card space-y-3 ${selectedClip?.id === clip.id ? 'border-accent' : ''}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p>Clip {clip.durationSeconds}s</p>
+              <p className="text-xs text-slate-400">{clip.status === 2 ? 'Listo' : `Estado ${clip.status}`}</p>
+            </div>
+            <button className="btn-ghost" onClick={() => setSelectedClipId(clip.id)}>
+              {selectedClip?.id === clip.id ? 'Seleccionado' : 'Elegir'}
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {recording && (
         <div className="card space-y-3">
-          <p className="font-semibold">Partido completo</p>
+          <p className="font-semibold">Pagar y enviar por WhatsApp</p>
           <p className="font-display text-3xl text-accent">{formatMoney(price, currency)}</p>
           <p className="text-sm text-slate-400">
-            Al confirmar, vas a Mercado Pago. Cuando el pago se aprueba, enviamos el video a WhatsApp.
+            Al confirmar, vas a Mercado Pago. Cuando el pago se aprueba, enviamos el clip a WhatsApp.
           </p>
           <label className="block text-sm">
             WhatsApp (con codigo de pais)
@@ -113,7 +191,7 @@ function PlayerMatchDetail() {
           )}
           <button
             className="btn-primary w-full"
-            disabled={pay.isPending}
+            disabled={pay.isPending || !clipReady}
             onClick={() => {
               if (phone.trim().length < 8) {
                 setError('Ingresa un telefono de WhatsApp valido.');
@@ -123,7 +201,7 @@ function PlayerMatchDetail() {
               pay.mutate();
             }}
           >
-            {pay.isPending ? 'Redirigiendo...' : 'Pagar con Mercado Pago'}
+            {pay.isPending ? 'Redirigiendo...' : clipReady ? 'Pagar con Mercado Pago' : 'Elegi o crea un clip listo'}
           </button>
         </div>
       )}
@@ -140,7 +218,7 @@ function StaffMatchDetail() {
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(30);
   const duration = Math.max(0, end - start);
-  const recordingId = recordings.data?.[0]?.id;
+  const recordingId = recordings.data?.find(isUsableRecording)?.id ?? recordings.data?.[0]?.id;
   const create = useMutation({
     mutationFn: () =>
       videosApi.createClip({

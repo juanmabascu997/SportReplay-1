@@ -1,8 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { clubsApi, matchesApi } from '../services/api';
 import { ARGENTINA_PROVINCES } from '../utils/roles';
+import { matchHasRecording } from '../utils/recordings';
 
 export function PlayerSearchPage() {
   const clubs = useQuery({ queryKey: ['clubs'], queryFn: clubsApi.list });
@@ -30,7 +31,14 @@ export function PlayerSearchPage() {
   });
 
   const items = matches.data?.items ?? [];
-  const withRecording = items.filter((m) => m.hasRecording);
+  const recordingQueries = useQueries({
+    queries: items.map((match) => ({
+      queryKey: ['recordings', match.id],
+      queryFn: () => matchesApi.recordings(match.id)
+    }))
+  });
+  const recordingsReady = recordingQueries.length === 0 || recordingQueries.every((q) => q.isFetched);
+  const withRecording = items.filter((match, index) => matchHasRecording(match, recordingQueries[index]?.data));
   const searched = canSearch && (matches.isFetched || matches.isError);
 
   return (
@@ -105,31 +113,36 @@ export function PlayerSearchPage() {
         </div>
       )}
 
-      {searched && items.length > 0 && withRecording.length === 0 && (
+      {searched && recordingsReady && items.length > 0 && withRecording.length === 0 && (
         <div className="card space-y-1">
           <p className="font-semibold">No hay grabaciones para esta busqueda</p>
-          <p className="text-sm text-slate-400">Hay {items.length} partido(s), pero ninguno tiene video listo.</p>
+          <p className="text-sm text-slate-400">Hay {items.length} partido(s), pero ninguno tiene grabacion.</p>
         </div>
       )}
 
-      {items.map((match) => (
-        <div key={match.id} className="card space-y-3">
-          <div>
-            <p className="font-semibold">{match.title ?? 'Partido'}</p>
-            <p className="text-sm text-slate-400">
-              {match.clubName} · {match.courtName} · {new Date(match.startTime).toLocaleString()}
-            </p>
-          </div>
-          {match.hasRecording ? (
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-accent">Hay grabacion disponible</p>
-              <Link className="btn-primary" to={`/matches/${match.id}`}>Previsualizar</Link>
+      {items.map((match, index) => {
+        const available = matchHasRecording(match, recordingQueries[index]?.data);
+        return (
+          <div key={match.id} className="card space-y-3">
+            <div>
+              <p className="font-semibold">{match.title ?? 'Partido'}</p>
+              <p className="text-sm text-slate-400">
+                {match.clubName} · {match.courtName} · {new Date(match.startTime).toLocaleString()}
+              </p>
             </div>
-          ) : (
-            <p className="text-sm text-slate-400">Sin grabacion para este partido.</p>
-          )}
-        </div>
-      ))}
+            {available ? (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-accent">Grabacion disponible</p>
+                <Link className="btn-primary" to={`/matches/${match.id}`}>Crear clip</Link>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">
+                {recordingQueries[index]?.isFetching ? 'Buscando grabacion...' : 'Sin grabacion para este partido.'}
+              </p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

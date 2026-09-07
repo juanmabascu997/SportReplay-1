@@ -59,8 +59,8 @@ export interface Match {
   endTime: string;
   status: number;
   title?: string;
-  hasRecording: boolean;
-  recordingCount: number;
+  hasRecording?: boolean;
+  recordingCount?: number;
 }
 
 export interface ClubPrices {

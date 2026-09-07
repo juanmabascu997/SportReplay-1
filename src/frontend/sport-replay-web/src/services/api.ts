@@ -9,7 +9,14 @@ export const clubsApi = {
   createCourt: (clubId: string, payload: { name: string; sportType: number; description?: string }) =>
     api.post<Court>(`/clubs/${clubId}/courts`, payload).then((r) => r.data),
   dashboard: (clubId: string) => api.get<ClubDashboard>(`/clubs/${clubId}/dashboard`).then((r) => r.data),
-  prices: (clubId: string) => api.get<ClubPrices>(`/clubs/${clubId}/prices`).then((r) => r.data),
+  prices: (clubId: string) =>
+    api.get<ClubPrices>(`/clubs/${clubId}/prices`).then((r) => r.data).catch(() => ({
+      clubId,
+      clipPrice: 1500,
+      fullMatchPrice: 4500,
+      currency: 'ARS',
+      allowFullMatchDownload: false
+    })),
   settings: (clubId: string) => api.get(`/clubs/${clubId}/settings`).then((r) => r.data),
   updateSettings: (clubId: string, payload: unknown) => api.put(`/clubs/${clubId}/settings`, payload).then((r) => r.data)
 };
